@@ -1,0 +1,310 @@
+
+<html>
+<head>
+<title>Study of Scripts Accessing Smartphone Sensors</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=false" />
+<style>
+	body {
+		background-color:black;
+		overflow-x: hidden;
+		overflow-y: hidden;
+		color:white;
+	}
+	.tabla_1{
+		border: solid 1px grey;
+		color: white; 
+		width: 100%; 
+		text-align: center;
+	}
+	td, th{
+		padding-left:5px;
+		padding-right:5px;
+	}
+	#container {
+		width: 250px;
+		height: 200px;
+		
+		margin: 50px 0 0 0px;
+		perspective: 500px;
+	}
+	#container rotacion {
+		position: absolute;
+		top:120px; left:0;
+		color: #fff;
+		font-family: monospace;
+		line-height: 15px;
+	}
+	.cube {
+		width:100px; height: 100px;
+		margin: 0 auto;
+		transform-style: preserve-3d;
+		transform-origin: 50px 50px 0px;
+	}
+	.cube div.pane {
+		position: absolute;
+		width: 100px;
+		height: 100px;
+		border: 1px solid white;
+		background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 45%, #3690f0 75%, #1e69de 100%);
+		background:      linear-gradient(to bottom, #6db3f2 0%, #54a3ee 45%, #3690f0 75%, #1e69de 100%);
+		opacity: 0.8;
+		line-height: 100px;
+		font-size: 25px;
+		font-weight: bold;
+		font-family: Verdana;
+		text-align: center;
+	}
+	.cube .front  { transform:                                 translateZ(50px); }
+	.cube .back   { transform: rotateX(180deg)                 translateZ(50px); }
+	.cube .right  { transform: rotateY( 90deg) rotateZ(-90deg) translateZ(50px); }
+	.cube .left   { transform: rotateY(-90deg) rotateZ( 90deg) translateZ(50px); }
+	.cube .top    { transform: rotateX( 90deg)                 translateZ(50px); }
+	.cube .bottom { transform: rotateX(-90deg)                 translateZ(50px); }
+</style>
+</head>
+<body>
+<img id="imagen" />    
+<table class="tabla_1">
+<tr>
+<td>ROTACION</td>
+<td>ORIENTACION X</td>
+<td>ORIENTACION Y</td>
+<td>ORIENTACION Z</td>
+</tr>
+<tr>
+<td>
+	<div id="container">
+		  <div class="cube" id="cube">
+			<div class="pane front">BUT</div>
+			<div class="pane back">TOP</div>
+			<div class="pane right">LEFT</div>
+			<div class="pane left">RIGHT</div>
+			<div class="pane top">BACK</div>
+			<div class="pane bottom">SCREEN</div>
+		  </div>
+	</div>
+</td>
+<td>	
+	<img src="compass.png" id="imgx" width="250">
+</td>
+<td>	
+	<img src="compass.png" id="imgy" width="250">
+</td>
+<td>	
+	<img src="compass.png" id="imgz" width="250">
+</td>
+</tr>
+</table>
+<br>
+<div>
+	<table id="resultsTable" border="1">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>Rotacion:</th>
+				<th>Orientacion x:</th>
+				<th>Orientacion y:</th>
+				<th>Orientacion z:</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td id=""><div id="count"></div></td>
+				<td id=""><div id="rotacion"></div></td>
+				<td id=""><div id="imgxtxt"></div></td>
+				<td id=""><div id="imgytxt"></div></td>
+				<td id=""><div id="imgztxt"></div></td>				
+			</tr>
+			<tr>
+				<td id=""><button id="calibraNorte">Calibrar</button></td>
+				<td id=""><div id="mensaje3d"></td>
+				<td id=""><div id="imgxmsg"></div></td>
+				<td id=""><div id="imgymsg"></div></td>
+				<td id=""><div id="imgzmsg"></div></td>
+			</tr>			
+		</tbody>
+	</table>
+</div>
+
+<script>
+
+var alpha=0, beta=0, gamma=0;
+var referenciaNorte3D = { x:0, y: 0, z: 0 };
+var referenciaNorte2D = { x:0, y: 0, z: 0 };
+	
+
+setInterval(function() { getdata() }, 100);
+			
+function getdata() 
+{
+    const url = 'recibir.php';
+    const http = new XMLHttpRequest();
+    http.open("GET", url);
+    http.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) 
+		{
+            var data = JSON.parse(this.responseText);
+			alpha = round(data[9]["y"]);
+			beta = -round(data[10]["y"]);
+			gamma = -round(data[11]["y"]);
+			
+			document.getElementById("count").innerHTML =	data[9]["x"]
+            	
+			rotate3D(alpha, beta, gamma); // CUBO
+			rotate2D(alpha, beta, gamma, 'x','imgx');
+			rotate2D(alpha, beta, gamma, 'y','imgy');
+			rotate2D(alpha, beta, gamma, 'z','imgz');
+			
+        }
+    };
+    http.send();
+}
+
+function rotate2D(alpha, beta, gamma, ejeSeleccionado, imagen) {
+    let angulo = 0;
+	let referenciaNorte = 0; 
+
+    // Selecciona el eje deseado
+    switch (ejeSeleccionado.toLowerCase()) {
+        case 'x':
+            angulo = beta; // Beta es rotación en X
+			referenciaNorte = referenciaNorte3D.x;
+            break;
+        case 'y':
+            angulo = gamma; // Gamma es rotación en Y
+			referenciaNorte = referenciaNorte3D.y;
+            break;
+        case 'z':
+            angulo = alpha; // Alpha es rotación en Z (como brújula)
+			referenciaNorte = referenciaNorte3D.z;
+            break;
+        default:
+            console.error('Eje no válido');
+            return;
+    }
+
+    // Ajuste según la referencia de calibración
+    let headingCalibrado = angulo - referenciaNorte;
+    headingCalibrado = ((headingCalibrado % 360) + 360) % 360; // Asegura 0-360
+
+    // Actualiza la interfaz
+    const direcciones = ['Norte', 'Oeste', 'Sur', 'Este'];
+    const sector = Math.floor(headingCalibrado / 90) % 4;
+    document.getElementById(imagen+"txt").innerHTML = `${direcciones[sector]}<br>${headingCalibrado.toFixed(2)}&ordm;`;
+    document.getElementById(imagen).style.transform = `rotate(${headingCalibrado}deg)`;
+}
+
+function rotate3D(alpha, beta, gamma) {
+// CUBO 3D
+	
+	var default_angle = 0;
+	if(screen.mozOrientation == "landscape-primary") 
+		default_angle += -90;
+	else if(screen.mozOrientation == "landscape-secondary") 
+		default_angle += 90;
+	else if(screen.mozOrientation == "portrait-secondary") 
+		default_angle += 180;
+	else	
+		default_angle=-180;
+	
+
+	var default_z = Array(1, 0, 0),
+		default_x = rotate(Array(0, 1, 0), default_z, default_angle),
+		default_y = rotate(Array(0, 0, 1), default_z, default_angle);
+
+	var axis_z = default_y;
+	var axis_y = default_x;
+	var axis_x = rotate(default_z, default_z, beta);
+
+	var alpha2 = alpha - referenciaNorte3D.x;
+	var beta2 = beta - referenciaNorte3D.y;
+	var gamma2 = gamma - referenciaNorte3D.z;
+	
+	document.getElementById("rotacion").innerHTML =
+			"<table>"+
+			"<tr><td>Beta X</td><td>"+(beta2.toFixed(3))+"</td></tr>"+
+			"<tr><td>Gamma Y</td><td>"+(gamma2.toFixed(3))+"</td></tr>"+
+			"<tr><td>Alpha Z</td><td>"+(alpha2.toFixed(3))+"</td></tr>"+
+			"</table>";
+
+	document.getElementById("cube").style.transform =
+		"rotate3d(" + axis_z[0] + ", " + axis_z[1] + ", " + axis_z[2] + ", " + (alpha2) + "deg) " +
+		"rotate3d(" + axis_x[0] + ", " + axis_x[1] + ", " + axis_x[2] + ", " + (beta2) + "deg) " +
+		"rotate3d(" + axis_y[0] + ", " + axis_y[1] + ", " + axis_y[2] + ", " + (gamma2) + "deg) " +
+		"rotateZ(" + default_angle + "deg)";
+}
+
+function rotate(vec, axis, angle) {
+    let c = Math.cos(angle * Math.PI / 180.0),
+        s = Math.sin(angle * Math.PI / 180.0),
+        x = axis[0], y = axis[1], z = axis[2];
+
+    let rm00 = c + x * x * (1 - c),
+        rm10 = z * s + y * x * (1 - c),
+        rm20 = -y * s + z * x * (1 - c),
+        rm01 = -z * s + x * y * (1 - c),
+        rm11 = c + y * y * (1 - c),
+        rm21 = x * s + z * y * (1 - c),
+        rm02 = y * s + x * z * (1 - c),
+        rm12 = -x * s + y * z * (1 - c),
+        rm22 = c + z * z * (1 - c);
+
+    let result = [
+        rm00 * vec[0] + rm01 * vec[1] + rm02 * vec[2],
+        rm10 * vec[0] + rm11 * vec[1] + rm12 * vec[2],
+        rm20 * vec[0] + rm21 * vec[1] + rm22 * vec[2],
+    ];
+
+    // Redondear valores muy pequeños a 0
+    return result.map(value => Math.abs(value) < 1e-10 ? 0 : value);
+}
+
+function round(x) {
+    return ((x * 10) >> 0) / 10.0;
+}
+
+// Al pulsar el botón, establecer el norte a 0º y guardar la posición actual
+document.getElementById("calibraNorte").addEventListener("click", function() 
+{
+    
+	referenciaNortex = parseFloat(document.getElementById("imgxtxt").innerHTML.split("<br>")[1]);
+	referenciaNortey = parseFloat(document.getElementById("imgytxt").innerHTML.split("<br>")[1]);
+	referenciaNortez = parseFloat(document.getElementById("imgztxt").innerHTML.split("<br>")[1]);
+    
+	document.getElementById("imgxmsg").innerHTML = 'Calibrado en <br>' + referenciaNortex.toFixed(2) + '&ordm;';
+	document.getElementById("imgymsg").innerHTML = 'Calibrado en <br>' + referenciaNortey.toFixed(2) + '&ordm;';
+	document.getElementById("imgzmsg").innerHTML = 'Calibrado en <br>' + referenciaNortez.toFixed(2) + '&ordm;';
+	
+    document.getElementById("imgx").style.transform = "rotate(" + (0 - referenciaNortex) + "deg)";
+	document.getElementById("imgy").style.transform = "rotate(" + (0 - referenciaNortey) + "deg)";
+	document.getElementById("imgz").style.transform = "rotate(" + (0 - referenciaNortez) + "deg)";
+
+    referenciaNorte2D = {
+        x: referenciaNortex,
+        y: referenciaNortey,
+        z: referenciaNortez
+    };
+	
+    referenciaNorte3D = {
+        x: alpha,
+        y: beta,
+        z: gamma
+    };
+	
+    document.getElementById("mensaje3d").innerHTML =
+        `Calibrado en <br> X: ${referenciaNorte3D.x.toFixed(3)}&deg;<br>` +
+        `Y: ${referenciaNorte3D.y.toFixed(3)}&deg;<br>` +
+        `Z: ${referenciaNorte3D.z.toFixed(3)}&deg;`;
+
+});
+
+
+
+let vec = [1, 0, 0];
+let axis = [0, 1, 0]; // Girar alrededor de Y
+let angle = 90; // Rotación de 90 grados
+console.log(rotate(vec, axis, angle)); // Debería dar [0, 0, -1] si rota correctamente
+
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study of Scripts Accessing Smartphone Sensors</title>	
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+</head>
+<body>
+
+<main role="main" class="container mt-4" style="float: left;"> 
+  <div class="p-3 mb-2 bg-secondary" id="demo-div">
+    <!-- Start Demo Button -->
+    <a id="start_demo" class="btn btn-lg btn-success py-1" href="#" role="button">Start the demo</a>
+
+    <!-- Number of Data Points -->
+    <p style="margin-top:1rem;">Num. of datapoints: <span class="badge badge-warning" id="num-observed-events">0</span></p>
+
+    <!-- Orientation Section -->
+    <h4 style="margin-top:0.75rem;">Orientation</h4>
+    <div class="row">
+      <div class="col-12 col-md-4">X-axis (&beta;): <span id="Orientation_b">0</span><span>&deg;</span></div>
+      <div class="col-12 col-md-4">Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></div>
+      <div class="col-12 col-md-4">Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></div>
+    </div>
+
+    <!-- Accelerometer Section -->
+    <h4>Accelerometer</h4>
+    <div class="row">
+      <div class="col-12 col-md-4">X-axis: <span id="Accelerometer_x">0</span><span> m/s<sup>2</sup></div>
+      <div class="col-12 col-md-4">Y-axis: <span id="Accelerometer_y">0</span><span> m/s<sup>2</sup></div>
+      <div class="col-12 col-md-4">Z-axis: <span id="Accelerometer_z">0</span><span> m/s<sup>2</sup></div>
+      <div class="col-12 col-md-4">Data Interval: <span id="Accelerometer_i">0</span><span> ms</span></div>
+    </div>
+
+    <!-- Accelerometer including Gravity Section -->
+    <h4>Accelerometer including gravity</h4>
+    <div class="row">
+      <div class="col-12 col-md-4">X-axis: <span id="Accelerometer_gx">0</span><span> m/s<sup>2</sup></div>
+      <div class="col-12 col-md-4">Y-axis: <span id="Accelerometer_gy">0</span><span> m/s<sup>2</sup></div>
+      <div class="col-12 col-md-4">Z-axis: <span id="Accelerometer_gz">0</span><span> m/s<sup>2</sup></div>
+    </div>
+
+    <!-- Gyroscope Section -->
+    <h4>Gyroscope</h4>
+    <div class="row">
+      <div class="col-12 col-md-4">X-axis: <span id="Gyroscope_x">0</span><span>&deg;/s</div>
+      <div class="col-12 col-md-4">Y-axis: <span id="Gyroscope_y">0</span><span>&deg;/s</div>
+      <div class="col-12 col-md-4">Z-axis: <span id="Gyroscope_z">0</span><span>&deg;/s</div>
+    </div>
+  </div>
+</main>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+<script>
+var INTERVAL=100,
+	alpha = 0,
+	beta = 0,
+	gamma = 0,
+	agx = 0,
+	agy = 0,
+	agz = 0,
+	ax = 0,
+	ay = 0,
+	az = 0,
+	ai = 0,
+	gz = 0,
+	gx = 0,
+	gy = 0
+	cnt = 0
+	intevalSave = 0;
+	
+function handleOrientation(event){
+  alpha =  event.alpha;
+  beta = event.beta;
+  gamma = event.gamma;
+  updateFieldIfNotNull('Orientation_a', alpha, 10);
+  updateFieldIfNotNull('Orientation_b', beta, 10);
+  updateFieldIfNotNull('Orientation_g', gamma, 10);
+}
+
+function incrementEventCount(){
+  let counterElement = document.getElementById("num-observed-events")
+  let eventCount = parseInt(counterElement.innerHTML)
+  counterElement.innerHTML = eventCount + 1;
+  return counterElement.innerHTML;  
+}
+
+function updateFieldIfNotNull(fieldName, value, precision){
+
+  if (value != null)
+    document.getElementById(fieldName).innerHTML = value.toFixed(precision);
+}
+
+function handleMotion(event) {
+	agx = event.accelerationIncludingGravity.x;
+	agy = event.accelerationIncludingGravity.y; 
+	agz = event.accelerationIncludingGravity.z; 
+	ax = event.acceleration.x; 
+	ay = event.acceleration.y; 
+	az = event.acceleration.z; 
+	ai = event.interval; 
+	gz = event.rotationRate.alpha; 
+	gx = event.rotationRate.beta; 
+	gy = event.rotationRate.gamma; 			
+	updateFieldIfNotNull('Accelerometer_gx', agx, 10);
+	updateFieldIfNotNull('Accelerometer_gy', agy, 10);
+	updateFieldIfNotNull('Accelerometer_gz', agz, 10);
+	updateFieldIfNotNull('Accelerometer_x', ax, 10);
+	updateFieldIfNotNull('Accelerometer_y', ay, 10);
+	updateFieldIfNotNull('Accelerometer_z', az, 10);
+	updateFieldIfNotNull('Accelerometer_i', ai, 2);
+	updateFieldIfNotNull('Gyroscope_z', gz, 10);
+	updateFieldIfNotNull('Gyroscope_x', gx, 10);
+	updateFieldIfNotNull('Gyroscope_y', gy, 10);
+}
+
+function save() {
+	cnt = incrementEventCount();
+	json = {
+		agx:agx,
+		agy:agy, 
+		agz:agz, 
+		ax:ax, 
+		ay:ay, 
+		az:az, 
+		ai:ai, 
+		gz:gz, 
+		gx:gx, 
+		gy:gy, 
+		cnt:cnt,
+		alpha:alpha,
+		beta:beta,
+		gamma:gamma
+	};	
+	var xhr = new XMLHttpRequest();
+	xhr.open('PUT', "./emitir.php");
+	xhr.setRequestHeader('Content-Type', 'application/json');
+	xhr.onload = function() {
+		if (xhr.status === 200) {
+		   console.log(xhr.responseText);
+		   //var userInfo = JSON.parse(xhr.responseText);
+		}
+	};	
+	xhr.send(JSON.stringify(json));	
+}
+
+let is_running = false;
+let demo_button = document.getElementById("start_demo");
+demo_button.onclick = function(e) {
+  e.preventDefault();
+  if (is_running){
+   stop();
+    demo_button.innerHTML = "Start demo";
+    demo_button.classList.add('btn-success');
+    demo_button.classList.remove('btn-danger');
+    is_running = false;
+  }else{
+    //alert("goo");
+	goo();
+    document.getElementById("start_demo").innerHTML = "Stop demo";
+    demo_button.classList.remove('btn-success');
+    demo_button.classList.add('btn-danger');
+    is_running = true;
+  }
+};
+
+function goo() {
+	window.addEventListener("devicemotion", handleMotion);
+    window.addEventListener("deviceorientation", handleOrientation);
+	intevalSave =  setInterval(function(){ save(); }, INTERVAL);
+}
+
+function stop(){
+	window.removeEventListener("devicemotion", handleMotion);
+    window.removeEventListener("deviceorientation", handleOrientation);
+	  clearInterval(intevalSave);
+}
+</script>
+</body>
+</html>

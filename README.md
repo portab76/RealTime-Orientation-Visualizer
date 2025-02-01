@@ -5,12 +5,12 @@
 
 **Sistema distribuido para visualizar orientación de dispositivos móviles en 3D/2D con sincronización vía base de datos**
 
-![Arquitectura del Sistema](diagrama-arquitectura.png) <!-- Agrega tu diagrama aquí -->
+![Arquitectura del Sistema](diagrama.jpg) 
 
 ## 🌐 Componentes del Sistema
 
 ### 1. Emisor (Dispositivo Móvil)
-- **`emisor.html`**: Página web que accede a los sensores del teléfono (giroscopio, acelerómetro)
+- **`emisor.html`**: Página html que accede a los sensores del teléfono (giroscopio, acelerómetro)
 - **Funcionalidades**:
   - Captura datos de orientación (α, β, γ) cada 100 ms
   - Almacena en MySQL usando `PHP/guardar_datos.php`
@@ -23,13 +23,28 @@
 - **Base de Datos**: MySQL para sincronización en tiempo real
   - Tabla `orientacion`:
     ```sql
-    CREATE TABLE orientacion (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        alpha FLOAT,
-        beta FLOAT,
-        gamma FLOAT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+CREATE TABLE `motion` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `agx` float DEFAULT NULL,
+  `agy` float DEFAULT NULL,
+  `agz` float DEFAULT NULL,
+  `ax` float DEFAULT NULL,
+  `ay` float DEFAULT NULL,
+  `az` float DEFAULT NULL,
+  `ai` float DEFAULT NULL,
+  `gz` float DEFAULT NULL,
+  `gx` float DEFAULT NULL,
+  `gy` float DEFAULT NULL,
+  `cnt` int(11) DEFAULT NULL,
+  `st` timestamp NULL DEFAULT current_timestamp(),
+  `alpha` float DEFAULT NULL,
+  `beta` float DEFAULT NULL,
+  `gamma` float DEFAULT NULL,
+  `token` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO motion (token) VALUES ('POT');
     ```
 
 ## 🛠️ Requisitos de Instalación
@@ -41,9 +56,3 @@
      - MySQL
      - PHP 7.4+
 
-2. **Configuración de la Base de Datos**:
-   ```bash
-   mysql -u root -p
-   CREATE DATABASE orientacion_3d;
-   USE orientacion_3d;
-   # Ejecutar el SQL de creación de tabla anterior
