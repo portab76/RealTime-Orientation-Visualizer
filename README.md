@@ -16,10 +16,17 @@
   - Almacena en MySQL usando `PHP/guardar_datos.php`
   - Probado en dispositivos Xiaomi Redmi
   - Interfaz móvil optimizada con controles de calibración
+- **`emisor.php`**: Página php que que actualiza en la base de datos los valores muestreados
+![Emisor](./Emitir.jpg) 
 
 ### 2. Receptor (Ordenador)
 - **`receptor.html`**: Visualización 2D con brújula personalizada
 - **`receptor2.html`**: Visualización 3D con Three.js (`three.min.js`)
+- **`receptor.php`**: Página php que que recupera de la base de datos los valores muestreados
+![Receptor](./Recibir.jpg) 
+![Receptor2](./Recibir2.jpg) 
+
+
 - **Base de Datos**: MySQL para sincronización en tiempo real
   - Tabla `orientacion`:
     ```sql
@@ -47,12 +54,19 @@ CREATE TABLE `motion` (
 INSERT INTO motion (token) VALUES ('POT');
     ```
 
-## 🛠️ Requisitos de Instalación
+## 🛠️ Resumen del Sistema
 
-1. **Servidor Local**:
-   - Recomendado: XAMPP ([Descarga](https://www.apachefriends.org))
-   - Módulos requeridos:
-     - Apache
-     - MySQL
-     - PHP 7.4+
+El programa sincroniza los movimientos del teléfono móvil con una visualización en pantalla que combina:
+- **Orientación 3D**: Rotación de un cubo usando ángulos Euler (α, β, γ)
+- **Dirección 2D**: Brújula digital con corrección de inclinación
+- **Sincronización en tiempo real**: Comunicación bidireccional a través de una base de datos MySQL
+
+---
+
+## 🧮 Cálculos Extendidos: Velocidades y Desplazamientos
+
+### 1. Velocidad Angular
+### 2. Desplazamiento Angular
+### 3. Velocidad Lineal 
+### 4. Desplazamiento Lineal
 
