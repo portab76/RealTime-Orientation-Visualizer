@@ -1,11 +1,13 @@
 # RealTime-Orientation-Visualizer
  Sistema de Orientación 3D en Tiempo Real
 
+![Receptor](./img/Rotacion.jpg) 
+
 # Sistema de Orientación 3D en Tiempo Real 📡➔🖥️
 
 **Sistema distribuido para visualizar orientación de dispositivos móviles en 3D/2D con sincronización vía base de datos**
 
-![Arquitectura del Sistema](./Diagrama.jpg) 
+![Arquitectura del Sistema](./img/Diagrama.jpg) 
 
 ## 🌐 Componentes del Sistema
 
@@ -17,15 +19,14 @@
   - Probado en dispositivos Xiaomi Redmi
   - Interfaz móvil optimizada con controles de calibración
 - **`emisor.php`**: Página php que que actualiza en la base de datos los valores muestreados
-![Emisor](./Emitir.jpg) 
+![Emisor](./img/Emitir.jpg) 
 
 ### 2. Receptor (Ordenador)
 - **`receptor.html`**: Visualización 2D con brújula personalizada
 - **`receptor2.html`**: Visualización 3D con Three.js (`three.min.js`)
 - **`receptor.php`**: Página php que que recupera de la base de datos los valores muestreados
-![Receptor](./Recibir.jpg) 
-![Receptor2](./Recibir2.jpg) 
-
+![Receptor](./img/Recibir.jpg) 
+![Receptor2](./img/Recibir2.jpg) 
 
 - **Base de Datos**: MySQL para sincronización en tiempo real
   - Tabla `orientacion`:
