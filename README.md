@@ -5,7 +5,7 @@
 
 **Sistema distribuido para visualizar orientación de dispositivos móviles en 3D/2D con sincronización vía base de datos**
 
-![Arquitectura del Sistema](./diagrama.jpg) 
+![Arquitectura del Sistema](./Diagrama.jpg) 
 
 ## 🌐 Componentes del Sistema
 
