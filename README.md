@@ -22,7 +22,7 @@
 ![Emisor](./img/Emitir.jpg) 
 
 ### 2. Receptor (Ordenador)
-- **`receptor.html`**: Visualización 2D con brújula personalizada
+- **`receptor.html`**: Visualización con rotacion y brújula personalizada
 - **`receptor2.html`**: Visualización 3D con Three.js (`three.min.js`)
 - **`receptor.php`**: Página php que que recupera de la base de datos los valores muestreados
 ![Receptor](./img/Recibir.jpg) 
