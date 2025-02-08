@@ -67,9 +67,9 @@
 <table class="tabla_1">
 <tr>
 <td>ROTACION</td>
-<td>ORIENTACION X</td>
-<td>ORIENTACION Y</td>
-<td>ORIENTACION Z</td>
+<td>ORIENTACION X PICH</td>
+<td>ORIENTACION Y YAW</td>
+<td>ORIENTACION Z ROLL</td>
 </tr>
 <tr>
 <td>
@@ -85,13 +85,13 @@
 	</div>
 </td>
 <td>	
-	<img src="compass.png" id="imgx" width="250">
+	<img src="./img/compass.png" id="imgx" width="250">
 </td>
 <td>	
-	<img src="compass.png" id="imgy" width="250">
+	<img src="./img/compass.png" id="imgy" width="250">
 </td>
 <td>	
-	<img src="compass.png" id="imgz" width="250">
+	<img src="./img/compass.png" id="imgz" width="250">
 </td>
 </tr>
 </table>
@@ -102,9 +102,9 @@
 			<tr>
 				<th>Id</th>
 				<th>Rotacion:</th>
-				<th>Orientacion x:</th>
-				<th>Orientacion y:</th>
-				<th>Orientacion z:</th>
+				<th>Orientacion x Pitch:</th>
+				<th>Orientacion y Yaw:</th>
+				<th>Orientacion z Roll:</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -168,21 +168,21 @@ function rotate2D(alpha, beta, gamma, ejeSeleccionado, imagen) {
     switch (ejeSeleccionado.toLowerCase()) {
         case 'x':
             angulo = beta; // Beta es rotación en X
-			referenciaNorte = referenciaNorte3D.x;
+			referenciaNorte = referenciaNorte2D.x;
             break;
         case 'y':
             angulo = gamma; // Gamma es rotación en Y
-			referenciaNorte = referenciaNorte3D.y;
+			referenciaNorte = referenciaNorte2D.y;
             break;
         case 'z':
             angulo = alpha; // Alpha es rotación en Z (como brújula)
-			referenciaNorte = referenciaNorte3D.z;
+			referenciaNorte = referenciaNorte2D.z;
             break;
         default:
             console.error('Eje no válido');
             return;
     }
-
+console.log(ejeSeleccionado.toLowerCase() + "  " + referenciaNorte);
     // Ajuste según la referencia de calibración
     let headingCalibrado = angulo - referenciaNorte;
     headingCalibrado = ((headingCalibrado % 360) + 360) % 360; // Asegura 0-360
