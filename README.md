@@ -67,5 +67,5 @@ El programa sincroniza los movimientos del telefono movil con una visualizacion 
 ## Calculos Extendidos: Velocidades y Desplazamientos
 
 
-### 1. Dibujar la trayectorias obteniendo los datos de la acekeración.
+### 1. Dibujar la trayectorias obteniendo los datos de la aceleracion.
 ### 2. Aplicación de filtros en los datos recibidos de los sensores.
