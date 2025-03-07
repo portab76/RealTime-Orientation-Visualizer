@@ -48,6 +48,19 @@
       <div class="col-12 col-md-4">Y-axis: <span id="Gyroscope_y">0</span><span>&deg;/s</div>
       <div class="col-12 col-md-4">Z-axis: <span id="Gyroscope_z">0</span><span>&deg;/s</div>
     </div>
+
+    <h4>GPS</h4>
+    <div class="row">
+	
+      <div class="col-12 col-md-4">Detail:<span id="detail"></span><span></div>
+	  <div class="col-12 col-md-4">Latitude: <span id="lat">0</span><span></div>
+      <div class="col-12 col-md-4">Longitude: <span id="lng">0</span><span></div>
+      <div class="col-12 col-md-4"0>Acc: <span id="acc">0</span><span></div>
+      <div class="col-12 col-md-4"0>Altitude: <span id="alt">0</span><span></div>
+      <div class="col-12 col-md-4"0>Altitude Acc: <span id="altacc">0</span><span></div>
+      <div class="col-12 col-md-4"0>Head: <span id="hed">0</span><span></div>
+	  <div class="col-12 col-md-4"0>Speed: <span id="spe">0</span><span></div>
+    </div>
   </div>
 </main>
 
@@ -72,7 +85,9 @@ var INTERVAL=100,
 	gy = 0
 	cnt = 0
 	intevalSave = 0;
-	
+	// variables gps
+  var lat = 0, lng = 0, acc = 0, alt = 0, altacc = 0, hed = 0, spe = 0 ;
+  
 function handleOrientation(event){
   alpha =  event.alpha;
   beta = event.beta;
@@ -89,10 +104,13 @@ function incrementEventCount(){
   return counterElement.innerHTML;  
 }
 
-function updateFieldIfNotNull(fieldName, value, precision){
-
-  if (value != null)
-    document.getElementById(fieldName).innerHTML = value.toFixed(precision);
+function updateFieldIfNotNull(fieldName, value, precision) {
+    var element = document.getElementById(fieldName);
+    if (element) {
+        element.innerHTML = value.toFixed(precision);
+    } else {
+        console.error(`Element with ID ${fieldName} not found.`);
+    }
 }
 
 function handleMotion(event) {
@@ -121,21 +139,13 @@ function handleMotion(event) {
 function save() {
 	cnt = incrementEventCount();
 	json = {
-		agx:agx,
-		agy:agy, 
-		agz:agz, 
-		ax:ax, 
-		ay:ay, 
-		az:az, 
-		ai:ai, 
-		gz:gz, 
-		gx:gx, 
-		gy:gy, 
-		cnt:cnt,
-		alpha:alpha,
-		beta:beta,
-		gamma:gamma
-	};	
+		agx:agx?agx:0, agy:agy?agy:0, agz:agz?agz:0, ax:ax?ax:0, 
+        ay:ay?ay:0, az:az?az:0, ai:ai?ai:0, gz:gz?gz:0, gx:gx?gx:0, gy:gy?gy:0, 
+		    cnt:cnt, alpha:alpha?alpha:0, beta:beta?beta:0, gamma:gamma?gamma:0,
+        lat:lat?lat:0, lng:lng?lng:0, acc:acc?acc:0, alt:alt?alt:0, 
+        altacc:altacc?altacc:0, hed:hed?hed:0, spe:spe?spe:0
+	};
+
 	var xhr = new XMLHttpRequest();
 	xhr.open('PUT', "./emitir.php");
 	xhr.setRequestHeader('Content-Type', 'application/json');
@@ -179,6 +189,61 @@ function stop(){
     window.removeEventListener("deviceorientation", handleOrientation);
 	  clearInterval(intevalSave);
 }
+
+window.addEventListener("gpsupdate", (event) => {
+    //console.log("Nueva posición recibida:", event.detail);
+    lat = event.detail.lat;
+    lng = event.detail.lng;
+    acc = event.detail.accuracy;
+    alt = event.detail.altitude;
+    spe = event.detail.speed;
+    hed = event.detail.heading;
+	
+  //var lat = 0, lng = 0, acc = 0, alt = 0, altacc = 0, hed = 0, spe = 0 ;
+
+	//updateFieldIfNotNull('detail', event.detail, 0);
+	updateFieldIfNotNull('lat', lat, 10);
+	updateFieldIfNotNull('lng', lng, 10);
+	updateFieldIfNotNull('acc', acc, 10);
+	updateFieldIfNotNull('alt', alt, 10);
+	updateFieldIfNotNull('altacc', altacc, 10);
+	updateFieldIfNotNull('hed', hed, 10);
+	updateFieldIfNotNull('spe', spe, 2);
+});
+
+function startGPSListener() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const gpsEvent = new CustomEvent("gpsupdate", {
+                    detail: {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        altitude: position.coords.altitude,
+                        speed: position.coords.speed,
+                        heading: position.coords.heading,
+                    }
+                });
+                window.dispatchEvent(gpsEvent); // Disparar el evento globalmente en la ventana
+            },
+            (error) => {
+                console.error("Error obteniendo la ubicación:", error);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            }
+        );
+    } else {
+        console.error("Geolocalización no soportada en este navegador.");
+    }
+}
+
+// Iniciar el listener
+startGPSListener();
+
 </script>
 </body>
 </html>

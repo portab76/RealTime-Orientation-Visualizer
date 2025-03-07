@@ -26,7 +26,6 @@
 - **`receptor2.html`**: Visualización 3D con Three.js (`three.min.js`)
 - **`receptor.php`**: Página php que que recupera de la base de datos los valores muestreados
 ![Receptor](./img/Recibir.jpg) 
-![Receptor2](./img/Recibir2.jpg) 
 
 - **Base de Datos**: MySQL para sincronización en tiempo real
   - Tabla `orientacion`:
@@ -55,7 +54,7 @@ CREATE TABLE `motion` (
 INSERT INTO motion (token) VALUES ('POT');
     ```
 
-## 🛠️ Resumen del Sistema
+## 🛠�?Resumen del Sistema
 
 El programa sincroniza los movimientos del teléfono móvil con una visualización en pantalla que combina:
 - **Orientación 3D**: Rotación de un cubo usando ángulos Euler (α, β, γ)
