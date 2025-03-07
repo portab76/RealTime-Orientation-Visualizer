@@ -58,16 +58,14 @@
 ## Resumen del Sistema
 
 El programa sincroniza los movimientos del telefono movil con una visualizacion en pantalla que combina:
-- **Orientacion 3D**: Rotaci贸n de un cubo usando angulos Euler (伪, 尾, 纬)
-- **Direccion 2D**: Br煤jula digital con correccion de inclinacion
-- **Sincronizacion en tiempo real**: Comunicaci贸n bidireccional a traves de una base de datos MySQL
+- **Orientacion 3D**: Rotacion de un cubo usando angulos Euler (伪, 尾, 纬)
+- **Direccion 2D**: Brujula digital con correccion de inclinacion
+- **Sincronizacion en tiempo real**: Comunicacion bidireccional a traves de una base de datos MySQL
 
 ---
 
 ## Calculos Extendidos: Velocidades y Desplazamientos
 
-### 1. Velocidad Angular
-### 2. Desplazamiento Angular
-### 3. Velocidad Lineal 
-### 4. Desplazamiento Lineal
 
+### 1. Dibujar la trayectorias obteniendo los datos de la acekeración.
+### 2. Aplicación de filtros en los datos recibidos de los sensores.
