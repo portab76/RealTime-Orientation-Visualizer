@@ -27,32 +27,33 @@
 - **`receptor.php`**: Pagina php que que recupera de la base de datos los valores muestreados
 ![Receptor](./img/Recibir.jpg) 
 
-- **Base de Datos**: MySQL para sincronizacion en tiempo real
-  - Tabla `orientacion`:
+- **Base de Datos**: MySQL para sincronización en tiempo real
+  - Tabla `motion`:
     ```sql
-CREATE TABLE `motion` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `agx` float DEFAULT NULL,
-  `agy` float DEFAULT NULL,
-  `agz` float DEFAULT NULL,
-  `ax` float DEFAULT NULL,
-  `ay` float DEFAULT NULL,
-  `az` float DEFAULT NULL,
-  `ai` float DEFAULT NULL,
-  `gz` float DEFAULT NULL,
-  `gx` float DEFAULT NULL,
-  `gy` float DEFAULT NULL,
-  `cnt` int(11) DEFAULT NULL,
-  `st` timestamp NULL DEFAULT current_timestamp(),
-  `alpha` float DEFAULT NULL,
-  `beta` float DEFAULT NULL,
-  `gamma` float DEFAULT NULL,
-  `token` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    CREATE TABLE `motion` (
+      `id` INT(11) NOT NULL AUTO_INCREMENT,
+      `agx` FLOAT DEFAULT NULL,
+      `agy` FLOAT DEFAULT NULL,
+      `agz` FLOAT DEFAULT NULL,
+      `ax` FLOAT DEFAULT NULL,
+      `ay` FLOAT DEFAULT NULL,
+      `az` FLOAT DEFAULT NULL,
+      `ai` FLOAT DEFAULT NULL,
+      `gz` FLOAT DEFAULT NULL,
+      `gx` FLOAT DEFAULT NULL,
+      `gy` FLOAT DEFAULT NULL,
+      `cnt` INT(11) DEFAULT NULL,
+      `st` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP(),
+      `alpha` FLOAT DEFAULT NULL,
+      `beta` FLOAT DEFAULT NULL,
+      `gamma` FLOAT DEFAULT NULL,
+      `token` VARCHAR(255) NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO motion (token) VALUES ('POT');
+    INSERT INTO `motion` (`token`) VALUES ('POT');
     ```
+
 
 ## Resumen del Sistema
 
