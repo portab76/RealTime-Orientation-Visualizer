@@ -240,40 +240,34 @@ content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, 
 </div>
 
 <script>
-// manejo del mapa
-window.onload = function () {
+
+var marker; 
+var polyline;
+var latlngs = []; //trayectoria
+var rotationAngle = 0;
+var alpha=0, beta=0, gamma=0;
+var referenciaNorte3D = { x:0, y: 0, z: 0 };
+var referenciaNorte2D = { x:0, y: 0, z: 0 };
+var lat = 0, lng = 0, acc = 0, alt = 0, altacc = 0, hed = 0, spe = 0 ;
+var lastUpdate = Date.now();
+var displacementt  = 0,displacementx  = 0,displacementy  = 0,displacementz  = 0;
+var displacementX = 0, displacementY = 0, displacementZ = 0;			
+// Constantes para el filtro pasa-bajo
+var alphaFilter = 0.1; // Más bajo = más suavizado
+var previousAx = 0, previousAy = 0, previousAz = 0;
+// chart 
+var axChart = [];
+var ayChart = [];
+var azChart = [];
+var updateInterval = 100;
+var dataLength = 50;
+var cnt = 0;
+var switchState = true;
+
+window.onload = function () 
+{
  
-	var marker; 
-	var polyline;
-	var latlngs = []; //trayectoria
-	var rotationAngle = 0;
-	var alpha=0, beta=0, gamma=0;
-	var referenciaNorte3D = { x:0, y: 0, z: 0 };
-	var referenciaNorte2D = { x:0, y: 0, z: 0 };
-	var lat = 0, lng = 0, acc = 0, alt = 0, altacc = 0, hed = 0, spe = 0 ;
-	var lastUpdate = Date.now();
-	var displacementt  = 0,displacementx  = 0,displacementy  = 0,displacementz  = 0;
-	var displacementX = 0, displacementY = 0, displacementZ = 0;			
-	// Constantes para el filtro pasa-bajo
-	var alphaFilter = 0.1; // Más bajo = más suavizado
-	var previousAx = 0, previousAy = 0, previousAz = 0;
-	// chart 
-	var axChart = [];
-	var ayChart = [];
-	var azChart = [];
-	var updateInterval = 100;
-	var dataLength = 50; // Número de puntos de datos visibles
-	var cnt = 0;
-	
-	// Obtiene el elemento checkbox y el span que muestra el estado
-   
-    var switchState = true;
-    function updateState() {
-		switchState = document.getElementById('toggleSwitch').checked;
-    }
-    document.getElementById('toggleSwitch').addEventListener('change', updateState);
-    updateState();
-	
+    document.getElementById('toggleSwitch').addEventListener('change', updateState);	
     var chartAcceleration = new CanvasJS.Chart("Acceleration", {
         backgroundColor: "#000000", // Fondo negro
         title: {
@@ -301,7 +295,6 @@ window.onload = function () {
                 type: "line",
                 xValueFormatString: "#####",
 				yValueFormatString: "####.00",
-                
 				showInLegend: true,
                 name: "Y",
                 color: "#00FF00", // Línea verde para 'Y'
@@ -318,23 +311,76 @@ window.onload = function () {
             }
         ]
     });
-	
-	// Funcin para el filtro pasa-bajo
-	function lowPassFilter(current, previous, alphaFilter) {
-		return alphaFilter * current + (1 - alphaFilter) * previous;
-	}
 
-  
-	setInterval(function() { getdata() }, 100);
+	var map = L.map('map').setView([0, 0], 18);
+	L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+		attribution: 'Tiles © Esri',
+		maxZoom: 25
+	}).addTo(map);
+
+	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		attribution: '&copy; OpenStreetMap contributors'
+	}).addTo(map);
+
+	document.getElementById('clearTrail').addEventListener('click', function(e) {
+		e.preventDefault();
+		latlngs = [];
+		if (polyline) {
+			map.removeLayer(polyline);
+			polyline = L.polyline(latlngs, {color: 'red'}).addTo(map);
+			showMessage('Ruta borrada correctamente', false);
+		}
+	}); 
+
+	document.getElementById('clearMov').addEventListener('click', function(e) {
+		e.preventDefault();
+		displacementX = 0;
+		displacementY = 0;
+		displacementZ = 0;
+	}); 	
+
+	document.getElementById("calibraNorte").addEventListener("click", function() 
+	{
+		referenciaNortex = parseFloat(document.getElementById("imgxtxt").innerHTML.split("<br>")[1]);
+		referenciaNortey = parseFloat(document.getElementById("imgytxt").innerHTML.split("<br>")[1]);
+		referenciaNortez = parseFloat(document.getElementById("imgztxt").innerHTML.split("<br>")[1]);
+		document.getElementById("imgxmsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortex.toFixed(2) + '&ordm;';
+		document.getElementById("imgymsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortey.toFixed(2) + '&ordm;';
+		document.getElementById("imgzmsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortez.toFixed(2) + '&ordm;';
+		document.getElementById("imgx").style.transform = "rotate(" + (0 - referenciaNortex) + "deg)";
+		document.getElementById("imgy").style.transform = "rotate(" + (0 - referenciaNortey) + "deg)";
+		document.getElementById("imgz").style.transform = "rotate(" + (0 - referenciaNortez) + "deg)";
+		referenciaNorte2D = {
+			x: referenciaNortex,
+			y: referenciaNortey,
+			z: referenciaNortez
+		};
+		referenciaNorte3D = {
+			x: alpha,
+			y: beta,
+			z: gamma
+		};
+		document.getElementById("mensaje3d").innerHTML =
+			`<br>Calibrado en: <table class=\"subtab\"><tr><td>BetaX</td><td>${referenciaNorte3D.x.toFixed(3)}&deg;</td></td>` +
+			`<tr><td>GammaY</td><td>${referenciaNorte3D.y.toFixed(3)}&deg;</td><Ttr>` +
+			`<tr><td>AlphaZ</td><td>${referenciaNorte3D.z.toFixed(3)}&deg;</td></tr></table>`;
+	});
+
 	function getdata() 
 	{
-    const url = 'recibir.php';
-    const http = new XMLHttpRequest();
-    http.open("GET", url);
-    http.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) 
+		const url = 'recibir.php';
+		const http = new XMLHttpRequest();
+		const deltaTime = 0.1; // TODO: shwitch para cambiar tiempo fijo o calculado
+		/*
+		const now = Date.now();
+		var dt = (now - lastUpdate) / 1000; // Delta time en segundos
+		lastUpdate = now;		
+		*/
+		http.open("GET", url);
+		http.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) 
 		{
-            var data = JSON.parse(this.responseText);
+			var data = JSON.parse(this.responseText);
 			alpha = round(data["alpha"])*-1;
 			beta = round(data["beta"]);
 			gamma = round(data["gamma"]);
@@ -346,7 +392,7 @@ window.onload = function () {
 			altacc = data["altacc"];
 			hed = data["hed"]; 
 			spe = data["spe"];
-			
+	
 			document.getElementById("gpstxt").innerHTML = `GPS:<br>
 			  <table class="subtab">
 				<tr><td>Latitud</td><td>${lat}&deg;</td></tr>
@@ -359,7 +405,7 @@ window.onload = function () {
 			  </table>`;
 
 			document.getElementById("count").innerHTML =	data["cnt"];
-            	
+				
 			rotate3D(alpha, beta, gamma); // CUBO
 			rotate2D(alpha, beta, gamma, 'x','imgx');
 			rotate2D(alpha, beta, gamma, 'y','imgy');
@@ -367,8 +413,8 @@ window.onload = function () {
 			
 			// mapa 
 			if (!marker) {
-            marker = L.marker([lat, lng], { icon: createTriangleIcon(rotationAngle) }).addTo(map);
-            polyline = L.polyline(latlngs, {color: 'red'}).addTo(map);                        
+			marker = L.marker([lat, lng], { icon: createTriangleIcon(rotationAngle) }).addTo(map);
+			polyline = L.polyline(latlngs, {color: 'red'}).addTo(map);                        
 			
 			} else {
 				marker.setLatLng([lat, lng]);
@@ -399,13 +445,6 @@ window.onload = function () {
 				<tr style="color:#00FF00;"><td>y</td><td>${round(ay)} m/s<sup>2</sup></td></tr>
 				<tr style="color:#0000FF;"><td>z</td><td>${round(az)} m/s<sup>2</sup></td></tr>
 			</table>`;
-			
-			/*
-			const now = Date.now();
-			var dt = (now - lastUpdate) / 1000; // Delta time en segundos
-			lastUpdate = now;		
-			*/
-			const deltaTime = 0.1; // sg
 
 			// Integrar aceleración para obtener velocidad
 			var velocityX = ax * deltaTime;
@@ -454,220 +493,145 @@ window.onload = function () {
 				azChart.push(az1);
 				chartAcceleration.render();
 			}
-			
-			
-        } // end if status 200
-    };
-    http.send();
-	}
-
-	var map = L.map('map').setView([0, 0], 18);
-	L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-		attribution: 'Tiles © Esri',
-		maxZoom: 25
-	}).addTo(map);
-
-	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		attribution: '&copy; OpenStreetMap contributors'
-	}).addTo(map);
-
-
-	document.getElementById('clearTrail').addEventListener('click', function(e) {
-		e.preventDefault();
-		latlngs = [];
-		if (polyline) {
-			map.removeLayer(polyline);
-			polyline = L.polyline(latlngs, {color: 'red'}).addTo(map);
-			showMessage('Ruta borrada correctamente', false);
-		}
-	}); 
-
-	document.getElementById('clearMov').addEventListener('click', function(e) {
-		e.preventDefault();
-		displacementX = 0;
-		displacementY = 0;
-		displacementZ = 0;
-	}); 	
-
-	// BOTON CALIBRAR
-	document.getElementById("calibraNorte").addEventListener("click", function() 
-	{
-		referenciaNortex = parseFloat(document.getElementById("imgxtxt").innerHTML.split("<br>")[1]);
-		referenciaNortey = parseFloat(document.getElementById("imgytxt").innerHTML.split("<br>")[1]);
-		referenciaNortez = parseFloat(document.getElementById("imgztxt").innerHTML.split("<br>")[1]);
-		
-		document.getElementById("imgxmsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortex.toFixed(2) + '&ordm;';
-		document.getElementById("imgymsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortey.toFixed(2) + '&ordm;';
-		document.getElementById("imgzmsg").innerHTML = '<br>Calibrado en: <br>' + referenciaNortez.toFixed(2) + '&ordm;';
-		
-		document.getElementById("imgx").style.transform = "rotate(" + (0 - referenciaNortex) + "deg)";
-		document.getElementById("imgy").style.transform = "rotate(" + (0 - referenciaNortey) + "deg)";
-		document.getElementById("imgz").style.transform = "rotate(" + (0 - referenciaNortez) + "deg)";
-
-		referenciaNorte2D = {
-			x: referenciaNortex,
-			y: referenciaNortey,
-			z: referenciaNortez
+		} // end if status 200
 		};
-		
-		referenciaNorte3D = {
-			x: alpha,
-			y: beta,
-			z: gamma
-		};
-		
-		document.getElementById("mensaje3d").innerHTML =
-			`<br>Calibrado en: <table class=\"subtab\"><tr><td>BetaX</td><td>${referenciaNorte3D.x.toFixed(3)}&deg;</td></td>` +
-			`<tr><td>GammaY</td><td>${referenciaNorte3D.y.toFixed(3)}&deg;</td><Ttr>` +
-			`<tr><td>AlphaZ</td><td>${referenciaNorte3D.z.toFixed(3)}&deg;</td></tr></table>`;
-
-	});
+		http.send();
+	}
 	
-	
-	/***************************************************************/
-	/***************************************************************/
-	function rotate3D(alpha, beta, gamma) {
-		
-		alpha=alpha*1;
-		gamma=gamma*1;
-		beta=beta*-1;
-		
-		// CUBO 3D
-		var default_angle = 0;
-		if(screen.mozOrientation == "landscape-primary") 
-			default_angle += -90;
-		else if(screen.mozOrientation == "landscape-secondary") 
-			default_angle += 90;
-		else if(screen.mozOrientation == "portrait-secondary") 
-			default_angle += 180;
-		else	
-			default_angle=-180;
+	setInterval(function() { getdata() }, 100);
+	updateState();
 
-		var axis_y = rotate(Array(1, 0, 0), Array(1, 0, 0), default_angle);
-		var axis_x = rotate(Array(0, 1, 0), Array(0, 1, 0), default_angle);
-		var axis_z = rotate(Array(0, 0, 1), Array(0, 0, 1), default_angle);
 
-		var alpha2 = alpha - referenciaNorte3D.x;
-		var beta2 = beta - referenciaNorte3D.y;
-		var gamma2 = gamma - referenciaNorte3D.z;
-		
-		document.getElementById("cube").style.transform =
-			"rotate3d(" + axis_x[0] + ", " + axis_x[1] + ", " + axis_x[2] + ", " + (alpha2) + "deg) " +
-			"rotate3d(" + axis_y[0] + ", " + axis_y[1] + ", " + axis_y[2] + ", " + (beta2) + "deg) " +
-			"rotate3d(" + axis_z[0] + ", " + axis_z[1] + ", " + axis_z[2] + ", " + (gamma2) + "deg) " +
-			"rotateZ(" + default_angle + "deg)";
-			
-		document.getElementById("rotacion").innerHTML =
-				"Rotacion:<table class=\"subtab\">"+
-				"<tr><td>BetaX</td><td>"+(beta2.toFixed(3))+"&deg;</td></tr>"+
-				"<tr><td>GammaY</td><td>"+(gamma2.toFixed(3))+"&deg;</td></tr>"+
-				"<tr><td>AlphaZ</td><td>"+(alpha2.toFixed(3))+"&deg;</td></tr>"+
-				"</table>";
-	}
-
-	function rotate2D(alpha, beta, gamma, ejeSeleccionado, imagen) {
-		var angulo = 0;
-		var referenciaNorte = 0; 
-		switch (ejeSeleccionado.toLowerCase()) {
-			case 'x':
-				angulo = beta;
-				referenciaNorte = referenciaNorte2D.x;
-				break;
-			case 'y':
-				angulo = gamma;
-				referenciaNorte = referenciaNorte2D.y;
-				break;
-			case 'z':
-				angulo = alpha;
-				referenciaNorte = referenciaNorte2D.z;
-				break;
-			default:
-				console.error('Eje no válido');
-				return;
-		}
-		// Ajuste segun la referencia de calibracion
-		var headingCalibrado = angulo - referenciaNorte;
-		headingCalibrado = ((headingCalibrado % 360) + 360) % 360; // Asegura 0-360
-		// Actualiza la interfaz
-		const direcciones = ['Norte', 'Oeste', 'Sur', 'Este'];
-		const sector = Math.floor(headingCalibrado / 90) % 4;
-		document.getElementById(imagen+"txt").innerHTML = `${direcciones[sector]}<br>${headingCalibrado.toFixed(2)}&ordm;`;
-		document.getElementById(imagen).style.transform = `rotate(${headingCalibrado}deg)`;
-	}
-
-	function rotate(vec, axis, angle) {
-		var c = Math.cos(angle * Math.PI / 180.0),
-			s = Math.sin(angle * Math.PI / 180.0),
-			x = axis[0], y = axis[1], z = axis[2];
-
-		var rm00 = c + x * x * (1 - c),
-			rm10 = z * s + y * x * (1 - c),
-			rm20 = -y * s + z * x * (1 - c),
-			rm01 = -z * s + x * y * (1 - c),
-			rm11 = c + y * y * (1 - c),
-			rm21 = x * s + z * y * (1 - c),
-			rm02 = y * s + x * z * (1 - c),
-			rm12 = -x * s + y * z * (1 - c),
-			rm22 = c + z * z * (1 - c);
-
-		var result = [
-			rm00 * vec[0] + rm01 * vec[1] + rm02 * vec[2],
-			rm10 * vec[0] + rm11 * vec[1] + rm12 * vec[2],
-			rm20 * vec[0] + rm21 * vec[1] + rm22 * vec[2],
-		];
-
-		// Redondear valores muy pequeños a 0
-		return result.map(value => Math.abs(value) < 1e-10 ? 0 : value);
-	}
-
-	function round(x) {
-		return ((x * 10) >> 0) / 10.0;
-	}
-
-	function createTriangleIcon(angle) {
-		return L.divIcon({
-			className: 'custom-marker',
-			html: `
-				<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-					<polygon points="50,5 85,95 15,95" fill="blue" stroke="black" stroke-width="5"
-						transform="rotate(${angle + 180}, 50, 50)"/>
-				</svg>
-			`,
-			iconSize: [40, 40],
-			iconAnchor: [20, 20] // Centro del icono
-		});
-	}
-
-	function deviceToWorld(ax, ay, az, orientation) {
-		// Convertir ángulos a radianes
-		const yaw = (orientation.alpha * Math.PI) / 180;
-		const pitch = (orientation.beta * Math.PI) / 180;
-		const roll = (orientation.gamma * Math.PI) / 180;
-
-		// Matriz de rotación
-		const cy = Math.cos(yaw), sy = Math.sin(yaw);
-		const cp = Math.cos(pitch), sp = Math.sin(pitch);
-		const cr = Math.cos(roll), sr = Math.sin(roll);
-
-		// Aplicar rotaciones
-		return {
-		  x: ax * (cy * cr + sy * sp * sr) + ay * (sy * sp * cr - cy * sr) + az * (sy * cp),
-		  y: ax * (sy * cr - cy * sp * sr) + ay * (cy * sp * cr + sy * sr) + az * (-cy * cp),
-		  z: ax * (cp * sr) + ay * (cp * cr) + az * sp
-		};
-	}	
-	
 } // end window.onload 
 
+function updateState() {
+	switchState = document.getElementById('toggleSwitch').checked;
+}
+
+// Funcin para el filtro pasa-bajo
+function lowPassFilter(current, previous, alphaFilter) {
+	return alphaFilter * current + (1 - alphaFilter) * previous;
+}
+
+function rotate3D(alpha, beta, gamma) {
+	
+	alpha=alpha*1;
+	gamma=gamma*1;
+	beta=beta*-1;
+	
+	// CUBO 3D
+	var default_angle = 0;
+	if(screen.mozOrientation == "landscape-primary") 
+		default_angle += -90;
+	else if(screen.mozOrientation == "landscape-secondary") 
+		default_angle += 90;
+	else if(screen.mozOrientation == "portrait-secondary") 
+		default_angle += 180;
+	else	
+		default_angle=-180;
+
+	var axis_y = rotate(Array(1, 0, 0), Array(1, 0, 0), default_angle);
+	var axis_x = rotate(Array(0, 1, 0), Array(0, 1, 0), default_angle);
+	var axis_z = rotate(Array(0, 0, 1), Array(0, 0, 1), default_angle);
+
+	var alpha2 = alpha - referenciaNorte3D.x;
+	var beta2 = beta - referenciaNorte3D.y;
+	var gamma2 = gamma - referenciaNorte3D.z;
+	
+	document.getElementById("cube").style.transform =
+		"rotate3d(" + axis_x[0] + ", " + axis_x[1] + ", " + axis_x[2] + ", " + (alpha2) + "deg) " +
+		"rotate3d(" + axis_y[0] + ", " + axis_y[1] + ", " + axis_y[2] + ", " + (beta2) + "deg) " +
+		"rotate3d(" + axis_z[0] + ", " + axis_z[1] + ", " + axis_z[2] + ", " + (gamma2) + "deg) " +
+		"rotateZ(" + default_angle + "deg)";
+		
+	document.getElementById("rotacion").innerHTML =
+			"Rotacion:<table class=\"subtab\">"+
+			"<tr><td>BetaX</td><td>"+(beta2.toFixed(3))+"&deg;</td></tr>"+
+			"<tr><td>GammaY</td><td>"+(gamma2.toFixed(3))+"&deg;</td></tr>"+
+			"<tr><td>AlphaZ</td><td>"+(alpha2.toFixed(3))+"&deg;</td></tr>"+
+			"</table>";
+}
+
+function rotate2D(alpha, beta, gamma, ejeSeleccionado, imagen) {
+	var angulo = 0;
+	var referenciaNorte = 0; 
+	switch (ejeSeleccionado.toLowerCase()) {
+		case 'x':
+			angulo = beta;
+			referenciaNorte = referenciaNorte2D.x;
+			break;
+		case 'y':
+			angulo = gamma;
+			referenciaNorte = referenciaNorte2D.y;
+			break;
+		case 'z':
+			angulo = alpha;
+			referenciaNorte = referenciaNorte2D.z;
+			break;
+		default:
+			console.error('Eje no válido');
+			return;
+	}
+	// Ajuste segun la referencia de calibracion
+	var headingCalibrado = angulo - referenciaNorte;
+	headingCalibrado = ((headingCalibrado % 360) + 360) % 360; // Asegura 0-360
+	// Actualiza la interfaz
+	const direcciones = ['Norte', 'Oeste', 'Sur', 'Este'];
+	const sector = Math.floor(headingCalibrado / 90) % 4;
+	document.getElementById(imagen+"txt").innerHTML = `${direcciones[sector]}<br>${headingCalibrado.toFixed(2)}&ordm;`;
+	document.getElementById(imagen).style.transform = `rotate(${headingCalibrado}deg)`;
+}
+
+function rotate(vec, axis, angle) {
+	var c = Math.cos(angle * Math.PI / 180.0),
+		s = Math.sin(angle * Math.PI / 180.0),
+		x = axis[0], y = axis[1], z = axis[2];
+
+	var rm00 = c + x * x * (1 - c),
+		rm10 = z * s + y * x * (1 - c),
+		rm20 = -y * s + z * x * (1 - c),
+		rm01 = -z * s + x * y * (1 - c),
+		rm11 = c + y * y * (1 - c),
+		rm21 = x * s + z * y * (1 - c),
+		rm02 = y * s + x * z * (1 - c),
+		rm12 = -x * s + y * z * (1 - c),
+		rm22 = c + z * z * (1 - c);
+
+	var result = [
+		rm00 * vec[0] + rm01 * vec[1] + rm02 * vec[2],
+		rm10 * vec[0] + rm11 * vec[1] + rm12 * vec[2],
+		rm20 * vec[0] + rm21 * vec[1] + rm22 * vec[2],
+	];
+
+	// Redondear valores muy pequeños a 0
+	return result.map(value => Math.abs(value) < 1e-10 ? 0 : value);
+}
+
+function round(x) {
+	return ((x * 10) >> 0) / 10.0;
+}
+
+function createTriangleIcon(angle)
+{
+	console.log(angle);
+	return L.divIcon({
+		className: 'custom-marker',
+		html: `
+			<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+				<polygon points="50,5 85,95 15,95" fill="blue" stroke="black" stroke-width="5"
+					transform="rotate(${angle + 180}, 50, 50)"/>
+			</svg>
+		`,
+		iconSize: [40, 40],
+		iconAnchor: [20, 20] // Centro del icono
+	});
+}
 //var vec = [1, 0, 0];
 //var axis = [0, 1, 0]; // Girar alrededor de Y
 //var angle = 90; // Rotación de 90 grados
 //console.log(rotate(vec, axis, angle)); // Debería dar [0, 0, -1] si rota correctamente
 </script>
-
-
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
-
 </body>
 </html>
