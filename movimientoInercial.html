@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study of Scripts Accessing Smartphone Sensors</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+<style>
+td { font-size: 25px; }
+canvas { border: 2px solid black; background: #f3f3f3; }
+.toolbar2 { position: relative; top: 10px; left: 10px; z-index: 1000; background: rgba(255, 255, 255, 0.9); padding: 3px; border-radius: 5px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3); transition: all 0.3s; width: 97%; margin-right: 20px; }
+.toolbar2 a { display: inline-block; background: #fff; border-radius: 4px; padding: 4px; text-align: center; width: 50px; height: 50px; margin: 2px; cursor: pointer; border: 1px solid grey; }
+.toolbar2 a:hover { background: #f0f0f0; }
+.toolbar2 a img { width: 40px; height: 40px; }
+.toolbar2.collapsed { padding: 5px; }
+.toolbar2.collapsed .subtab, .toolbar2.collapsed #num-observed-events { display: none; }
+.toolbar2.collapsed a:not(#toggleToolbar) { display: none; }
+.badge-warning { color: #212529; background-color: #ffc107; }
+.badge { display: inline-block; padding: .25em .4em; font-size: 75%; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: .25rem; }
+</style>
+</head>
+<body>
+<div role="main" >
+<table class="subtab" >
+<tr>
+<td>
+<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute;margin-top: 10px;margin-left: 20px;">
+<polygon points="50,15 80,85 20,85" fill="blue" stroke="black" stroke-width="5" transform="rotate(0, 50, 50)" />
+</svg>
+<canvas id="canvas" width="600" height="600"></canvas>
+</td>
+</tr><tr>
+<td style="vertical-align: text-top;">
+	<div class="toolbar2" id="toolbar">
+		<a id="toggleToolbar" href="#" role="button"><img src="./img/icon-green-menu.png" alt="Show hide Menu"></a>
+		<a id="clearTrail" href="#" role="button"><img src="./img/ico-green-eraser.png" alt="Clear Trail"></a>
+		<a id="zoomIn" href="#" role="button"><img src="./img/ico-green-zoom-in.png" alt="Zoom in"></a>
+		<a id="zoomOut" href="#" role="button"><img src="./img/ico-green-zoom-out.png" alt="Zoom out"></a>
+        <a id="calibrate" href="#" role="button"><img src="./img/ico-green-reload.png" alt="Calibrate"></a>
+		<table class="subtab" style="margin-top:10px;min-width:100%;">
+			<tr><td style="width:50%">Tiempo </td><td><span id="deltaTime">0</span></td></tr>
+			<tr><td>Orientacion </td><td><span id="rotationAngle">0</span>º</td></tr>
+			<tr><td>Velocidad </td><td><div id="velocidad" style="margin-top: -5px;">0</div></td></tr>
+			<tr><td>Posicion </td><td>X: <span id="posX">0</span> px | Y: <span id="posY">0</span> px</td></tr>
+			<tr><td>Escala </td><td><span id="scale">0</span></td></tr>
+			<tr><td colspan="2"><span id="msg"></span></td></tr>
+		</table>
+		<table style="min-width:100%;">
+		<tr>
+		<td style="min-width:50%">
+			<h4 style="margin-top:0.75rem;">Orientation <span class="badge badge-warning" id="count_ori">0</span></h4>
+			<div>X-axis (&beta;): <span id="Orientation_b">0</span><span>&deg;</span></div>
+			<div>Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></div>
+			<div>Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></div>
+		</td><td>
+			<h4>Accelerometer <span class="badge badge-warning" id="count_acc">0</span></h4>
+			<div>X-axis: <span id="ax">0</span><span> m/s<sup>2</sup></div>
+			<div>Y-axis: <span id="ay">0</span><span> m/s<sup>2</sup></div>
+			<div>Z-axis: <span id="az">0</span><span> m/s<sup>2</sup></div>
+		</td></tr></table>
+	</div>
+</td>
+</tr>
+</table>
+<br>
+</div>
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+<script>
+var alpha = 0, beta = 0, gamma = 0, ax = 0, ay = 0, az = 0, count = 0, count_ori=0;
+var count_acc = 0;
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let posX = 0;
+let posY = 0;
+let svg = document.querySelector("svg");
+let x = canvas.width / 2;
+let y = canvas.height / 2;
+let trail = [];
+const damping = 0.98;
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
+let rotationAngle = 0;
+var previousAx = 0, previousAy = 0, previousAz = 0;
+var deltaTime = 0.1;
+let velocityX = 0, velocityY = 0;
+let lastUpdate = Date.now();
+
+// Calibration variables
+let calibrationSamples = 100;
+let currentCalibrationSample = 0;
+let sumAlpha = 0, sumBeta = 0, sumGamma = 0, sumAx = 0, sumAy = 0, sumAz = 0;
+let calibrationAlpha = 0, calibrationBeta = 0, calibrationGamma = 0, calibrationAx = 0, calibrationAy = 0, calibrationAz = 0;
+let isCalibrating = false;
+
+
+//DOM Update Frequency
+const domUpdateInterval = 100; // milliseconds
+let lastDOMUpdate = Date.now();
+
+// Moving Average Filter
+const filterWindowSize = 5;
+let axBuffer = [], ayBuffer = [], azBuffer = [];
+let alphaBuffer = [], betaBuffer = [], gammaBuffer = [];
+
+// Store sensor values
+let currentAlpha = 0, currentBeta = 0, currentGamma = 0, currentAx = 0, currentAy = 0, currentAz = 0;
+
+
+// Event listeners
+document.getElementById("clearTrail").addEventListener("click", () => {
+    trail = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    centerPolygon();
+});
+
+// Zoom handlers
+document.getElementById("zoomIn").addEventListener("click", () => {
+    const oldScale = scale;
+    scale += 5;
+    adjustZoomOffset(oldScale);
+    updateSVGPosition();
+});
+
+document.getElementById("zoomOut").addEventListener("click", () => {
+    const oldScale = scale;
+    scale -= 5;
+    if (scale < 1) scale = 1;
+    adjustZoomOffset(oldScale);
+    updateSVGPosition();
+
+});
+
+document.getElementById('toggleToolbar').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('toolbar').classList.toggle('collapsed');
+});
+
+document.getElementById('calibrate').addEventListener('click', function(e) {
+    startCalibration();
+});
+
+function startCalibration() {
+    isCalibrating = true;
+    currentCalibrationSample = 0;
+    sumAlpha = 0; sumBeta = 0; sumGamma = 0; sumAx = 0; sumAy = 0; sumAz = 0;
+    calibrationAlpha = 0; calibrationBeta = 0; calibrationGamma = 0; calibrationAx = 0; calibrationAy = 0; calibrationAz = 0;
+    document.getElementById('msg').textContent = "Calibrating... Please hold still.";
+}
+
+function endCalibration() {
+    calibrationAlpha = sumAlpha / calibrationSamples;
+    calibrationBeta = sumBeta / calibrationSamples;
+    calibrationGamma = sumGamma / calibrationSamples;
+    calibrationAx = sumAx / calibrationSamples;
+    calibrationAy = sumAy / calibrationSamples;
+    calibrationAz = sumAz / calibrationSamples;
+
+    isCalibrating = false;
+    document.getElementById('msg').textContent = "Calibration complete.";
+}
+
+function handleOrientation(event){
+    alpha = event.alpha || 0;
+    beta = event.beta || 0;
+    gamma = event.gamma || 0;
+
+    // Apply moving average filter
+    alphaBuffer.push(alpha);
+    betaBuffer.push(beta);
+    gammaBuffer.push(gamma);
+
+    if (alphaBuffer.length > filterWindowSize) {
+        alphaBuffer.shift();
+        betaBuffer.shift();
+        gammaBuffer.shift();
+    }
+
+    currentAlpha = alphaBuffer.reduce((a, b) => a + b, 0) / alphaBuffer.length;
+    currentBeta = betaBuffer.reduce((a, b) => a + b, 0) / betaBuffer.length;
+    currentGamma = gammaBuffer.reduce((a, b) => a + b, 0) / gammaBuffer.length;
+
+    count_ori++;
+}
+
+function handleMotion(event) {
+
+    currentAx = event.acceleration.x || 0;
+    currentAy = event.acceleration.y || 0;
+    currentAz = event.acceleration.z || 0;
+
+    // Apply moving average filter
+    axBuffer.push(currentAx);
+    ayBuffer.push(currentAy);
+    azBuffer.push(currentAz);
+
+    if (axBuffer.length > filterWindowSize) {
+        axBuffer.shift();
+        ayBuffer.shift();
+        azBuffer.shift();
+    }
+
+    currentAx = axBuffer.reduce((a, b) => a + b, 0) / axBuffer.length;
+    currentAy = ayBuffer.reduce((a, b) => a + b, 0) / ayBuffer.length;
+    currentAz = azBuffer.reduce((a, b) => a + b, 0) / azBuffer.length;
+
+    count_acc++;
+
+    if (isCalibrating) {
+        sumAlpha += alpha;
+        sumBeta += beta;
+        sumGamma += gamma;
+        sumAx += currentAx;
+        sumAy += currentAy;
+        sumAz += currentAz;
+
+        currentCalibrationSample++;
+
+        if (currentCalibrationSample >= calibrationSamples) {
+            endCalibration();
+        }
+    }
+
+}
+
+function centerPolygon() {
+    x = canvas.width / 2;
+    y = canvas.height / 2;
+    posX = x;
+    posY = y;
+    updateSVGPosition();
+}
+
+function updateSVGPosition() {
+    const svgScreenX = x * scale + offsetX;
+    const svgScreenY = y * scale + offsetY;
+    const size = 30;
+    svg.style.width = size + "px";
+    svg.style.height = size + "px";
+    svg.style.left = (svgScreenX - size/2) + "px";
+    svg.style.top = (svgScreenY - size/2) + "px";
+}
+
+function adjustZoomOffset(oldScale) {
+    const centerCanvasX = (canvas.width/2 - offsetX) / oldScale;
+    const centerCanvasY = (canvas.height/2 - offsetY) / oldScale;
+    offsetX = canvas.width/2 - centerCanvasX * scale;
+    offsetY = canvas.height/2 - centerCanvasY * scale;
+}
+
+function animate()
+{
+    const now = Date.now();
+    deltaTime = (now - lastUpdate) / 1000;
+    lastUpdate = now;
+
+    // Correct for calibration offsets
+    const calibratedAx = currentAx - calibrationAx;
+    const calibratedAy = currentAy - calibrationAy;
+
+    // Apply global transformation
+    const { globalAx, globalAy } = applyGlobalTransform(calibratedAx, calibratedAy, currentAlpha);
+
+    // Update velocity
+    velocityX += globalAx * deltaTime;
+    velocityY += globalAy * deltaTime;
+
+    // Apply damping
+    velocityX *= damping;
+    velocityY *= damping;
+
+    // Update position
+    posX += velocityX * deltaTime * 50;
+    posY += velocityY * deltaTime * 50;
+
+    // Keep within bounds
+    x = Math.max(0, Math.min(canvas.width, posX));
+    y = Math.max(0, Math.min(canvas.height, posY));
+
+    // Draw
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    ctx.save();
+    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+    const visualCenterX = (canvas.width/2 - offsetX) / scale;
+    const visualCenterY = (canvas.height/2 - offsetY) / scale;
+    ctx.lineWidth = 2 / scale;
+    ctx.beginPath();
+    ctx.moveTo(visualCenterX, visualCenterY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'blue';
+    ctx.stroke();
+    ctx.fillStyle = 'black';
+
+    trail.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2 / scale, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    ctx.restore();
+    trail.push({x, y});
+
+    // Keep trail length reasonable
+    if (trail.length > 500) {
+        trail.shift();
+    }
+
+    updateSVGPosition();
+
+    //Update dom less frequently
+    if (now - lastDOMUpdate >= domUpdateInterval) {
+        updateDOM();
+        lastDOMUpdate = now;
+    }
+
+
+    requestAnimationFrame(animate);
+}
+
+function updateDOM() {
+        const rotation = ((alpha % 360) + 360) % 360;
+        document.querySelector("svg polygon").setAttribute("transform", `rotate(${rotation}, 50, 50)`);
+        document.getElementById("deltaTime").textContent = deltaTime.toFixed(3);
+        document.getElementById("rotationAngle").textContent = rotation.toFixed(2);
+        document.getElementById("posX").textContent = x.toFixed(0);
+        document.getElementById("posY").textContent = y.toFixed(0);
+        document.getElementById("scale").textContent = scale.toFixed(1);
+        document.getElementById("Orientation_a").textContent = currentAlpha.toFixed(3);
+        document.getElementById("Orientation_b").textContent = currentBeta.toFixed(3);
+        document.getElementById("Orientation_g").textContent = currentGamma.toFixed(3);
+        document.getElementById("ax").textContent = currentAx.toFixed(3);
+        document.getElementById("ay").textContent = currentAy.toFixed(3);
+        document.getElementById("az").textContent = currentAz.toFixed(3);
+        document.getElementById("count_ori").textContent = count_ori;
+        document.getElementById("count_acc").textContent = count_acc;
+		document.getElementById("velocidad").textContent = "x: "+ velocityX.toFixed(3) +" y: "+ velocityY.toFixed(3) +" m/s" ;
+		
+}
+
+
+function applyGlobalTransform(ax, ay, angle) {
+    const radians = angle * Math.PI / 180;
+    const globalAx = ax * Math.cos(-radians) - ay * Math.sin(-radians);
+    const globalAy = ax * Math.sin(-radians) + ay * Math.cos(-radians);
+    return { globalAx, globalAy };
+}
+
+window.addEventListener("devicemotion", handleMotion);
+window.addEventListener("deviceorientation", handleOrientation);
+centerPolygon();
+animate();
+
+</script>
+</body>
+</html>
